@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <_name>UUID labeller</_name>
+  <id>net.fobel.christian.uuid_labeller</id>
+  <dependency type="executable" location="extensions">uuid_labeller.py</dependency>
+  <dependency type="executable" location="extensions">inkex.py</dependency>
+  <param name="tags" type="string" _gui-text="Comma separated UUID replacement tags: "></param>
+  <effect>
+    <object-type>all</object-type>
+    <effects-menu>
+       <submenu _name="UUID"/>
+    </effects-menu>
+  </effect>
+  <script>
+    <command reldir="extensions" interpreter="python">uuid_labeller.py</command>
+  </script>
+</inkscape-extension>
