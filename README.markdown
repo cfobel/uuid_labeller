@@ -18,6 +18,22 @@ Slice notation can be used in the extension dialog to only replace with a
 substring of the UUID.
 
 
+Installation
+------------
+
+### Windows ###
+
+Copy `uuid_labeller.py` and `uuid_labeller.inx` to the following directory:
+
+    C:\Users\<user>\AppData\Roaming\inkscape\extensions
+
+### Linux (and OS X?) ###
+
+Copy `uuid_labeller.py` and `uuid_labeller.inx` to the following directory:
+
+    ~/.config/inkscape/extensions
+
+
 Usage
 -----
 
