@@ -51,10 +51,13 @@ class UUIDLabelEffect(inkex.Effect):
             if not match:
                 continue
             pattern_attrs = match.groupdict()
-            for element_i in self.document.xpath('//svg:text[contains(text(), '
-                                                 '"%s")]' %
-                                                 pattern_attrs['pattern'],
-                                                 namespaces=inkex.NSS):
+            # Match text elements and all descendant elements of text elements
+            # (e.g., `<span>`) containing pattern.
+            xpath_str = ("(//svg:text |"
+                         " //svg:text//svg:*)[contains(text(), '%s')]" %
+                         pattern_attrs['pattern'])
+    	    matches = self.document.xpath(xpath_str, namespaces=inkex.NSS)
+            for element_i in matches:
                 text_i = element_i.text
                 if pattern_attrs['multi'] is not None:
                     uuid_i = str(uuid4())
