@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 import re
+from datetime import datetime
 # These two lines are only needed if you don't put the script directly into
 # the installation directory
 import sys
 sys.path.append('/usr/share/inkscape/extensions')
 from uuid import uuid4
+
 
 # We will use the inkex module with the predefined Effect base class.
 import inkex
@@ -14,7 +16,7 @@ from simplestyle import *
 
 
 # Regex to match a pattern entered in the extension parameters dialog.
-cre_pattern = re.compile(r'(?P<pattern>(?P<multi><\w+>)|\w+)(\[(?P<start>-?\d+)?:?(?P<end>-?\d+)\])?')
+cre_pattern = re.compile(r'(?P<pattern>(?P<multi><\w+>)|(?P<date>date(?!time))|(?P<datetime>datetime)|\w+)(\[(?P<start>-?\d+)?:?(?P<end>-?\d+)\])?')
 
 
 class UUIDLabelEffect(inkex.Effect):
@@ -61,6 +63,10 @@ class UUIDLabelEffect(inkex.Effect):
                 text_i = element_i.text
                 if pattern_attrs['multi'] is not None:
                     uuid_i = str(uuid4())
+                elif pattern_attrs['datetime'] is not None:
+                    uuid_i = datetime.today().strftime('%Y-%m-%d %H:%M')
+                elif pattern_attrs['date'] is not None:
+                    uuid_i = datetime.today().strftime('%Y-%m-%d')
                 else:
                     uuid_i = uuid
                 start = (0 if pattern_attrs['start'] is None else
