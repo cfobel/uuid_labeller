@@ -17,6 +17,8 @@ assigned to all occurrences of each label.
 Slice notation can be used in the extension dialog to only replace with a
 substring of the UUID.
 
+The date or date/time combination can also be inserted with `{{date}}` and `{{datetime}}`, respectively.
+
 
 Installation
 ------------
@@ -49,7 +51,7 @@ Usage
 Credits
 -------
 
-Copyright 2016 Christian Fobel
+Copyright 2016 Christian Fobel and Michael Dryden
 
 
 [usage-pic]: docs/usage.gif
