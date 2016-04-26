@@ -56,6 +56,7 @@ class UUIDLabelEffect(inkex.Effect):
         save_true = self.options.save_true.lower()
         path = expanduser(self.options.path)
         uuid = str(uuid4())
+        single_true = False
         multi_uuids = []
 
         for pattern in [v.strip() for v in tags.split(',')
@@ -67,7 +68,7 @@ class UUIDLabelEffect(inkex.Effect):
             pattern_attrs = match.groupdict()
             start = (0 if pattern_attrs['start'] is None else
                      int(pattern_attrs['start']))
-            end = (len(uuid_i) if pattern_attrs['end'] is None else
+            end = (None if pattern_attrs['end'] is None else
                    int(pattern_attrs['end']))
             # Match text elements and all descendant elements of text elements
             # (e.g., `<span>`) containing pattern.
@@ -85,16 +86,22 @@ class UUIDLabelEffect(inkex.Effect):
                 elif pattern_attrs['date'] is not None:
                     uuid_i = datetime.today().strftime('%Y-%m-%d')
                 else:
+                    uuid = uuid[start:end]
                     uuid_i = uuid
+                    single_true = True
 
                 text_i = re.sub(r'{{\s*%s\s*}}' % pattern_attrs['pattern'],
                                 uuid_i[start:end], text_i)
                 element_i.text = text_i
             
-            if save_true == 'true':
-                with open(path, 'a') as f:
+        if save_true == 'true':
+            with open(path, 'a') as f:
+                if single_true:
                     for i in multi_uuids:
-                        f.write('%s,%s\n' % (uuid[start:end], i))
+                        f.write('%s,%s\n' % (uuid, i))
+                else:
+                    for i in multi_uuids:
+                        f.write('%s\n' % i)
 
 
 # Create effect instance and apply it.
