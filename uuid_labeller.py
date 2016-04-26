@@ -55,11 +55,11 @@ class UUIDLabelEffect(inkex.Effect):
         tags = self.options.tags
         save_true = self.options.save_true.lower()
         path = expanduser(self.options.path)
+        uuid = str(uuid4())
+        multi_uuids = []
 
         for pattern in [v.strip() for v in tags.split(',')
                         if v.strip()]:
-            uuid = str(uuid4())
-            multi_uuids = []
 
             match = cre_pattern.match(pattern)
             if not match:
