@@ -19,6 +19,8 @@ substring of the UUID.
 
 The date or date/time combination can also be inserted with `{{date}}` and `{{datetime}}`, respectively.
 
+Generated UUIDs can be saved to a .csv file and will be appended to an existing file.
+Each per-instance UUID will generate a row with either a single column if no global UUID exists, or the global UUID in the first column and the per-instance UUID in the second.
 
 Installation
 ------------

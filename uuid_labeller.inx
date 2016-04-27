@@ -5,7 +5,9 @@
   <dependency type="executable" location="extensions">uuid_labeller.py</dependency>
   <dependency type="executable" location="extensions">inkex.py</dependency>
   <param name="tags" type="string" _gui-text="Comma separated UUID replacement tags: "></param>
-  <effect>
+  <param name="save_true" type="boolean" gui-text="Save tags to file">true</param>
+  <param name="path" type="string" _gui-text="Save path for UUIDs: ">~/Desktop/tags.csv</param>
+  <effect needs-live-preview="false">
     <object-type>all</object-type>
     <effects-menu>
        <submenu _name="UUID"/>

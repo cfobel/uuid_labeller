@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime
+from os.path import expanduser
 # These two lines are only needed if you don't put the script directly into
 # the installation directory
 import sys
@@ -31,6 +32,13 @@ class UUIDLabelEffect(inkex.Effect):
                                      type='string', dest='tags',
                                      default='', help='Comma separated UUID '
                                      'replacement tags.')
+        self.OptionParser.add_option('-s', '--save_true', action='store',
+                                     dest='save_true',
+                                     default='', help='Save tags to file.')
+        self.OptionParser.add_option('-p', '--path', action='store',
+                                     type='string', dest='path',
+                                     default='~/Desktop/tags.txt',
+                                     help='Path to save tags.')
 
     def effect(self):
         """
@@ -45,14 +53,23 @@ class UUIDLabelEffect(inkex.Effect):
         """
         # Get script's "--tags" option value.
         tags = self.options.tags
+        save_true = self.options.save_true.lower()
+        path = expanduser(self.options.path)
+        uuid = str(uuid4())
+        single_true = False
+        multi_uuids = []
 
         for pattern in [v.strip() for v in tags.split(',')
                         if v.strip()]:
-            uuid = str(uuid4())
+
             match = cre_pattern.match(pattern)
             if not match:
                 continue
             pattern_attrs = match.groupdict()
+            start = (0 if pattern_attrs['start'] is None else
+                     int(pattern_attrs['start']))
+            end = (None if pattern_attrs['end'] is None else
+                   int(pattern_attrs['end']))
             # Match text elements and all descendant elements of text elements
             # (e.g., `<span>`) containing pattern.
             xpath_str = ("(//svg:text |"
@@ -63,19 +80,28 @@ class UUIDLabelEffect(inkex.Effect):
                 text_i = element_i.text
                 if pattern_attrs['multi'] is not None:
                     uuid_i = str(uuid4())
+                    multi_uuids.append(uuid_i[start:end])
                 elif pattern_attrs['datetime'] is not None:
                     uuid_i = datetime.today().strftime('%Y-%m-%d %H:%M')
                 elif pattern_attrs['date'] is not None:
                     uuid_i = datetime.today().strftime('%Y-%m-%d')
                 else:
+                    uuid = uuid[start:end]
                     uuid_i = uuid
-                start = (0 if pattern_attrs['start'] is None else
-                         int(pattern_attrs['start']))
-                end = (len(uuid_i) if pattern_attrs['end'] is None else
-                       int(pattern_attrs['end']))
+                    single_true = True
+
                 text_i = re.sub(r'{{\s*%s\s*}}' % pattern_attrs['pattern'],
                                 uuid_i[start:end], text_i)
                 element_i.text = text_i
+            
+        if save_true == 'true':
+            with open(path, 'a') as f:
+                if single_true:
+                    for i in multi_uuids:
+                        f.write('%s,%s\n' % (uuid, i))
+                else:
+                    for i in multi_uuids:
+                        f.write('%s\n' % i)
 
 
 # Create effect instance and apply it.
