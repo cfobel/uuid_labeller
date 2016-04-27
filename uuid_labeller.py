@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import re
 from datetime import datetime
-from os.path import expanduser
+import os
+import re
 # These two lines are only needed if you don't put the script directly into
 # the installation directory
 import sys
@@ -17,7 +17,12 @@ from simplestyle import *
 
 
 # Regex to match a pattern entered in the extension parameters dialog.
-cre_pattern = re.compile(r'(?P<pattern>(?P<multi><\w+>)|(?P<date>date(?!time))|(?P<datetime>datetime)|\w+)(\[(?P<start>-?\d+)?:?(?P<end>-?\d+)\])?')
+cre_pattern = re.compile(r'(?P<pattern>('
+                         r'(?P<datetime>datetime)|'
+                         r'(?P<date>date(?!time))|'
+                         r'(?P<global_label>\w+)|'
+                         r'(?P<unique><(?P<unique_label>\w+)>)))'
+                         r'(\[(?P<start>-?\d+)?:?(?P<end>-?\d+)\])?')
 
 
 class UUIDLabelEffect(inkex.Effect):
@@ -37,7 +42,7 @@ class UUIDLabelEffect(inkex.Effect):
                                      default='', help='Save tags to file.')
         self.OptionParser.add_option('-p', '--path', action='store',
                                      type='string', dest='path',
-                                     default='~/Desktop/tags.txt',
+                                     default='~/Desktop/tags.csv',
                                      help='Path to save tags.')
 
     def effect(self):
@@ -54,22 +59,42 @@ class UUIDLabelEffect(inkex.Effect):
         # Get script's "--tags" option value.
         tags = self.options.tags
         save_true = self.options.save_true.lower()
-        path = expanduser(self.options.path)
-        uuid = str(uuid4())
-        single_true = False
-        multi_uuids = []
+        path = os.path.expanduser(self.options.path)
+        global_uuids = {}  # Global UUID for each label
+        unique_uuids = {}  # List of unique UUIDs for each label
 
-        for pattern in [v.strip() for v in tags.split(',')
-                        if v.strip()]:
+        def get_global_uuid(label):
+            if label not in global_uuids:
+                uuid = str(uuid4())
+                # Record UUID for label.
+                global_uuids[label] = uuid
+                # Initialize empty unique UUIDs list for label.
+                unique_uuids[label] = []
+            else:
+                # Reuse existing global UUID for label.
+                uuid = global_uuids[label]
+            return uuid
+
+        for pattern in [v.strip() for v in tags.split(',') if v.strip()]:
+            # Each `pattern` is in one of the following forms:
+            #  - `...` (common UUID for all occurrences)
+            #  - `<...>` (`unique` key: multiple unique UUIDs)
+            #  - `date` (`date` key: date string)
+            #  - `datetime` (`datetime` key: date and  time string)
+            #
+            # UUID patterns may have optional slice notation suffix
+            # (e.g., `[:8]`).
 
             match = cre_pattern.match(pattern)
             if not match:
                 continue
             pattern_attrs = match.groupdict()
+
             start = (0 if pattern_attrs['start'] is None else
                      int(pattern_attrs['start']))
             end = (None if pattern_attrs['end'] is None else
                    int(pattern_attrs['end']))
+
             # Match text elements and all descendant elements of text elements
             # (e.g., `<span>`) containing pattern.
             xpath_str = ("(//svg:text |"
@@ -78,30 +103,54 @@ class UUIDLabelEffect(inkex.Effect):
     	    matches = self.document.xpath(xpath_str, namespaces=inkex.NSS)
             for element_i in matches:
                 text_i = element_i.text
-                if pattern_attrs['multi'] is not None:
-                    uuid_i = str(uuid4())
-                    multi_uuids.append(uuid_i[start:end])
-                elif pattern_attrs['datetime'] is not None:
+
+                for k in ['global_label', 'unique_label']:
+                    label_i = pattern_attrs[k]
+                    if label_i is not None:
+                        # Get global UUID pattern to associate with all all
+                        # occurrences of label.
+                        global_uuid_i = get_global_uuid(label_i)
+                        if k == 'global_label':
+                            # Replace all occurrences of pattern with global
+                            # UUID for label.
+                            uuid_i = global_uuid_i
+                        else:
+                            # Replace each occurrences of pattern with unique
+                            # UUID.
+                            uuid_i = str(uuid4())
+                            unique_uuids[label_i].append(uuid_i)
+
+                if pattern_attrs['datetime'] is not None:
                     uuid_i = datetime.today().strftime('%Y-%m-%d %H:%M')
                 elif pattern_attrs['date'] is not None:
                     uuid_i = datetime.today().strftime('%Y-%m-%d')
-                else:
-                    uuid = uuid[start:end]
-                    uuid_i = uuid
-                    single_true = True
 
                 text_i = re.sub(r'{{\s*%s\s*}}' % pattern_attrs['pattern'],
                                 uuid_i[start:end], text_i)
                 element_i.text = text_i
-            
+
         if save_true == 'true':
+            if not os.path.exists(path) or os.stat(path).st_size == 0:
+                # File doesn't exist yet or is empty, so write header row.
+                with open(path, 'a') as f:
+                    f.write('utctimestamp,label,global_uuid,uuid\n')
+
+            utctimestamp = datetime.utcnow().isoformat()
             with open(path, 'a') as f:
-                if single_true:
-                    for i in multi_uuids:
-                        f.write('%s,%s\n' % (uuid, i))
-                else:
-                    for i in multi_uuids:
-                        f.write('%s\n' % i)
+                for label_i, unique_uuids_i in unique_uuids.iteritems():
+                    global_uuid_i = global_uuids[label_i]
+                    global_prefix_i = '%s' % ','.join([utctimestamp, label_i,
+                                                       global_uuid_i])
+                    if not unique_uuids_i:
+                        # There were no unique UUIDs for the associated label.
+                        # Write the global UUID for the label.
+                        f.write('%s,\n' % global_prefix_i)
+                    else:
+                        # Write a new line for each unique UUID with the same
+                        # label.
+                        for uuid_j in unique_uuids_i:
+                            f.write('%s\n' % ','.join((global_prefix_i,
+                                                       uuid_j)))
 
 
 # Create effect instance and apply it.
