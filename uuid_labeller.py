@@ -47,14 +47,55 @@ class UUIDLabelEffect(inkex.Effect):
 
     def effect(self):
         """
-        Replace text in the form `{{ my_label }}` with a UUID.
+        Replace text in the form `{{ ... }}` with dynamic content (where `...`
+        is a placeholder for user-specified text).
 
-        If label name is surrounded by angle brackets, e.g.,
-        `{{ <my_label> }}`, a unique UUID tag is assigned to each occurrence.
-        Otherwise, the same UUID tag is assigned to all occurrences of each label.
+        Note that in all cases, `...` represents a placeholder for a
+        user-specified text label.
 
-        Slice notation can be used in the extension dialog to only replace with
-        a substring of the UUID.
+         - Replace all occurrences of `{{ date }}` with `<year>-<month>-<day>`.
+         - Replace all occurrences of `{{ datetime }}` with
+           `<year>-<month>-<day> <hour>-<minute>`.
+         - Replace all occurrences of `{{ ... }}` with the same UUID.
+         - Replace each occurrence of `{{ <...> }}` with a unique UUID.
+
+        ### Note ###
+
+        Each placeholder label (i.e., `...` placeholder text) is assigned a
+        *global* UUID.  Document text in the form `{{ ... }}` is replaced with
+        the *global* UUID of the corresponding label.  Each occurrence of
+        document text in the form `{{ <...> }}` is replaced with a unique UUID,
+        but the *global* UUID for the corresponding `...` label is included
+        when writing to the save path.
+
+        For UUID placeholders (i.e., `{{ <...> }}` or `{{ ... }}` ), slice
+        notation can be used in the extension dialog to only replace with
+        a substring of the UUID (e.g., `<...>[1:3],...[:-10]`).
+
+        Examples
+        --------
+
+        Consider an Inkscape SVG document containing text elements with the
+        following content:
+
+            {{ batch }}#{{ <batch> }}
+            {{ batch }}#{{ <batch> }}
+            {{ batch }}#{{ <batch> }}
+            {{ datetime }}
+            {{ date }}
+
+        Assume the UUID labeller extension is applied with the following
+        setting:
+
+            batch[:6],<batch>[:8],datetime,date
+
+        The resulting contents of the text elements would be similar to:
+
+            9c767f#c36830b7
+            9c767f#86b6ed72
+            9c767f#ecd4916f
+            2016-04-27 11:39
+            2016-04-27
         """
         # Get script's "--tags" option value.
         tags = self.options.tags
